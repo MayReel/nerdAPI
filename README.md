@@ -4,7 +4,7 @@ For education only
 ## Installation
 use [npm](https://www.npmjs.com/) to install this reposity
 ```bash
-npm i cors express mysql2 nodemon
+npm i cors express mysql2 nodemon pm2 
 ```
 
 ## Usage
