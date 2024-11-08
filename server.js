@@ -10,6 +10,26 @@ app.use(express.json())
 app.use(cors())
 
 
+
+const env = process.env.NODE_ENV || "development";
+const logDir = "log";
+// Create the log directory if it does not exist
+if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir);
+}
+
+const backupDir = "backup";
+// Create the backup directory if it does not exist
+if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir);
+}
+
+const imageDir = "img";
+// Create the image directory if it does not exist
+if (!fs.existsSync(imageDir)) {
+    fs.mkdirSync(imageDir);
+}
+
 app.use('/user', user);
 app.use('/order', order);
 
