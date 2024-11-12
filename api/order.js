@@ -37,7 +37,7 @@ const transportsOption = {
         format.timestamp({
             format : 'YYYY-MM-DD HH:mm:ss' 
         }),
-        format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`))
+        format.printf(info => `${info.timestamp} ${info.level} [${info.label}]: ${info.message}`))
   })
 };
 
@@ -56,7 +56,7 @@ const logger = createLogger({
       maxFiles: '14d',
       format: format.combine(
         format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-        format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
+        format.printf(info => `${info.timestamp} ${info.level} [${info.label}]: ${info.message}`)
       )
     })
   ]
@@ -89,10 +89,10 @@ router.get('/', async (req, res) => {
     const con = await connectToDB();
     try {
         const [results] = await con.query(
-            "SELECT u.id, u.fname, u.lname, o.product_item FROM users u JOIN `order` o ON u.order_ID = o.order_ID"
+            "SELECT * FROM `order`"
         );
         return res.json(results);
-    } catch (err) {
+    } catch (error) {
         logger.error(req.originalUrl + " => " + error.message);
         return res.status(400).send({ error: true, message: err.message, data: null });
     } finally {
@@ -105,11 +105,11 @@ router.get('/:id', async (req, res) => {
     const id = req.params.id;
     try {
         const [results] = await con.query(
-            "SELECT u.id, u.fname, u.lname, o.product_item FROM users u JOIN `order` o ON u.order_ID = o.order_ID WHERE u.id = ?",
+            "SELECT * FROM `order` where `order_ID` = ? ",
             [id]
         );
         return res.json(results);
-    } catch (err) {
+    } catch (error) {
         logger.error(req.originalUrl + " => " + error.message);
         return res.status(400).send({ error: true, message: err.message, data: null });
     } finally {
