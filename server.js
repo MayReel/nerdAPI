@@ -38,7 +38,7 @@ const transportsOption = {
       format.colorize(),
       format.simple(),
       format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-      format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
+      format.printf(info => `${info.timestamp} ${info.level} [${info.label}]: ${info.message}`)
     )
   }),
   file: new winston.transports.File({ filename: 'combined.log', level: 'error' ,
@@ -48,7 +48,7 @@ const transportsOption = {
         format.timestamp({
             format : 'YYYY-MM-DD HH:mm:ss' 
         }),
-        format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`))
+        format.printf(info => `${info.timestamp} ${info.level} [${info.label}]: ${info.message}`))
   })
 };
 
@@ -56,7 +56,7 @@ const logger = createLogger({
   level: env === 'development' ? 'debug' : 'info',
   format: format.combine(
     format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
+    format.printf(info => `${info.timestamp} ${info.level} [${info.label}]: ${info.message}`)
   ),
   transports: [
     transportsOption.console,
@@ -67,7 +67,7 @@ const logger = createLogger({
       maxFiles: '14d',
       format: format.combine(
         format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-        format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
+        format.printf(info => `${info.timestamp} ${info.level} [${info.label}]: ${info.message}`)
       )
     })
   ]
