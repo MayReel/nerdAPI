@@ -36,7 +36,7 @@ const transportsOption = {
         format.timestamp({
             format : 'YYYY-MM-DD HH:mm:ss' 
         }),
-        format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`))
+        format.printf(info => `${info.timestamp} ${info.level} [${info.label}]: ${info.message}`))
   })
 };
 
@@ -87,14 +87,29 @@ async function connectToDB(){
 
 
 //----------------------------- api
-//Fetch all user
 router.get('/', async (req,res) =>{
     const con = await connectToDB();
     try{
-        const [results] = await con.query("SELECT * FROM `users`");
+        const [results] = await con.query("SELECT * from users");
         res.json(results)
     }
-    catch(err){
+    catch(error){
+        logger.error(req.originalUrl + " => " + error.message);
+        return res.status(400).send({ error: true, message: error.message, data: null });
+    }
+    finally{
+        await con.end()
+    }
+})
+
+//Fetch all user as formal
+router.get('/formal', async (req,res) =>{
+    const con = await connectToDB();
+    try{
+        const [results] = await con.query("SELECT u.id , u.fname, u.lname, u.username, u.age, u.quantities as amount, o.product_item as goods FROM users u JOIN `order` o ON u.order_ID = o.order_ID");
+        res.json(results)
+    }
+    catch(error){
         logger.error(req.originalUrl + " => " + error.message);
         return res.status(400).send({ error: true, message: error.message, data: null });
     }
@@ -110,8 +125,25 @@ router.get('/:id', async (req,res)=>{
     try{
         const [results] = await con.query('SELECT * FROM `users` WHERE id = ?', [id])
         return res.json(results)
+    }   
+    catch(error){
+        logger.error(req.originalUrl + " => " + error.message);
+        return res.status(400).send({ error: true, message: error.message, data: null });
     }
-    catch(err){
+    finally{
+        await con.end()
+    }
+})
+
+//fetch formal by id
+router.get('/formal/:id', async (req,res)=>{
+    const con = await connectToDB();
+    const id = req.params.id;
+    try{
+        const [results] = await con.query('SELECT u.id , u.fname, u.lname, u.username, u.age, u.quantities as amount, o.product_item as goods FROM users u JOIN `order` o ON u.order_ID = o.order_ID WHERE u.id = ?', [id])
+        return res.json(results)
+    }   
+    catch(error){
         logger.error(req.originalUrl + " => " + error.message);
         return res.status(400).send({ error: true, message: error.message, data: null });
     }
@@ -125,11 +157,11 @@ router.post('/', async (req, res) => {
     const con = await connectToDB();
     try {
         const [results] = await con.query(
-            'INSERT INTO `users` (`fname`, `lname`, `username`, `age`, `order_ID`) VALUES (?,?,?,?,?)',
-            [req.body.fname, req.body.lname, req.body.username, req.body.age, req.body.order_ID]
+            'INSERT INTO `users` (`fname`, `lname`, `username`, `age`, `order_ID`,`quantities`) VALUES (?,?,?,?,?,?)',
+            [req.body.fname, req.body.lname, req.body.username, req.body.age, req.body.order_ID,req.body.quantities]
         );
         return res.json(results);
-    } catch (err) {
+    } catch (error) {
         logger.error(req.originalUrl + " => " + error.message);
         return res.status(400).send({ error: true, message: err.message, data: null });
     } finally {
@@ -142,12 +174,12 @@ router.put('/',async(req,res) =>{
     const con = await connectToDB();
     try{
         const [results] = await con.query(
-            'UPDATE `users` SET `fname` = ?, `lname` = ?, `username` = ?,`age` = ?,`order_id` = ? WHERE `id` = ?',
-            [req.body.fname,req.body.lname,req.body.username,req.body.age,req.body.order_ID,req.body.id]
+            'UPDATE `users` SET `fname` = ?, `lname` = ?, `username` = ?,`age` = ?,`order_id` = ?,`quantities` = ? WHERE `id` = ?',
+            [req.body.fname,req.body.lname,req.body.username,req.body.age,req.body.order_ID,req.body.quantities,req.body.id]
         )
-        return results;    
+        return res.json(results);    
     }    
-    catch(err){
+    catch(error){
         logger.error(req.originalUrl + " => " + error.message);
         return res.status(400).send({ error: true, message: error.message, data: null });
     }
@@ -165,7 +197,7 @@ router.delete('/:id', async(req,res) => {
         )
         return res.json(results);
     }
-    catch(err){
+    catch(error){
         logger.error(req.originalUrl + " => " + error.message);
         return res.status(400).send({ error: true, message: error.message, data: null });
     }
