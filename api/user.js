@@ -1,10 +1,69 @@
+//----------------------------- 
 const express = require('express')
 const router = express.Router()
 const mysql = require('mysql2/promise');
 require('dotenv').config({ path: require('path').join(__dirname, '../variable/.env') });
+//----------------------------- 
 
 
-//connectDB
+//----------------------------- log
+const winston = require('winston');
+const fs = require('fs');
+const path = require('path');
+const { createLogger, format, transports } = winston;
+const dailyRotateFileTransport = require('winston-daily-rotate-file');
+const logDir = 'log';
+const env = process.env.NODE_ENV || "development";
+// Create log directory if it doesn’t exist
+if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir);
+}
+
+const transportsOption = {
+  console: new transports.Console({
+    level: 'warn',
+    format: format.combine(
+      format.colorize(),
+      format.simple(),
+      format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+      format.printf(info => `${info.timestamp} ${info.level} [${info.label}]: ${info.message}`)
+    )
+  }),
+  file: new winston.transports.File({ filename: 'combined.log', level: 'error' ,
+    format : format.combine(
+        format.colorize(), 
+        format.json(),
+        format.timestamp({
+            format : 'YYYY-MM-DD HH:mm:ss' 
+        }),
+        format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`))
+  })
+};
+
+const logger = createLogger({
+  level: env === 'development' ? 'debug' : 'info',
+  format: format.combine(
+    format.label({ label: path.basename(process.mainModule.filename) }),
+    format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  ),
+  transports: [
+    transportsOption.console,
+    new dailyRotateFileTransport({
+      filename: `${logDir}/%DATE%-results.log`,
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxFiles: '14d',
+      format: format.combine(
+        format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
+      )
+    })
+  ]
+});
+//----------------------------- 
+
+
+//----------------------------- connect database
 async function connectToDB(){
     const con = await mysql.createConnection({
         host: process.env.hostDB,
@@ -24,7 +83,11 @@ async function connectToDB(){
     })
     return con;
 }
-//Show all user
+//----------------------------- 
+
+
+//----------------------------- api
+//Fetch all user
 router.get('/', async (req,res) =>{
     const con = await connectToDB();
     try{
@@ -32,6 +95,7 @@ router.get('/', async (req,res) =>{
         res.json(results)
     }
     catch(err){
+        logger.error(req.originalUrl + " => " + error.message);
         return res.status(400).send({ error: true, message: error.message, data: null });
     }
     finally{
@@ -39,7 +103,7 @@ router.get('/', async (req,res) =>{
     }
 })
 
-//Show by ID
+//Fetch by ID
 router.get('/:id', async (req,res)=>{
     const con = await connectToDB();
     const id = req.params.id;
@@ -48,6 +112,7 @@ router.get('/:id', async (req,res)=>{
         return res.json(results)
     }
     catch(err){
+        logger.error(req.originalUrl + " => " + error.message);
         return res.status(400).send({ error: true, message: error.message, data: null });
     }
     finally{
@@ -65,6 +130,7 @@ router.post('/', async (req, res) => {
         );
         return res.json(results);
     } catch (err) {
+        logger.error(req.originalUrl + " => " + error.message);
         return res.status(400).send({ error: true, message: err.message, data: null });
     } finally {
         await con.end();
@@ -82,6 +148,7 @@ router.put('/',async(req,res) =>{
         return results;    
     }    
     catch(err){
+        logger.error(req.originalUrl + " => " + error.message);
         return res.status(400).send({ error: true, message: error.message, data: null });
     }
     finally{
@@ -99,13 +166,14 @@ router.delete('/:id', async(req,res) => {
         return res.json(results);
     }
     catch(err){
+        logger.error(req.originalUrl + " => " + error.message);
         return res.status(400).send({ error: true, message: error.message, data: null });
     }
     finally{
         await con.end()
     }
 })
-
+//----------------------------- 
 
 
 module.exports = router

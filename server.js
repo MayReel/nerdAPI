@@ -1,38 +1,88 @@
+//----------------------------- 
 require('dotenv').config({ path: require('path').join(__dirname, '../variable/.env') });
 var express = require('express')
 var cors = require('cors')
-const Port = process.env.PORT;
-const user = require('./api/user')
-const order = require('./api/order')
-
+const Port = process.env.PORT || 5000;
 var app = express()
 app.use(express.json())
 app.use(cors())
-
-
-
 const env = process.env.NODE_ENV || "development";
-const logDir = "log";
-// Create the log directory if it does not exist
+const ip = require("ip");
+//----------------------------- 
+
+
+//----------------------------- api path
+const user = require('./api/user')
+const order = require('./api/order')
+//----------------------------- 
+
+
+
+//----------------------------- log
+const winston = require('winston');
+const fs = require('fs');
+const path = require('path');
+const { createLogger, format, transports } = winston;
+const dailyRotateFileTransport = require('winston-daily-rotate-file');
+const logDir = 'log';
+
+// Create log directory if it doesn’t exist
 if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir);
 }
 
-const backupDir = "backup";
-// Create the backup directory if it does not exist
-if (!fs.existsSync(backupDir)) {
-    fs.mkdirSync(backupDir);
-}
+const transportsOption = {
+  console: new transports.Console({
+    level: 'warn',
+    format: format.combine(
+      format.colorize(),
+      format.simple(),
+      format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+      format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
+    )
+  }),
+  file: new winston.transports.File({ filename: 'combined.log', level: 'error' ,
+    format : format.combine(
+        format.colorize(), 
+        format.json(),
+        format.timestamp({
+            format : 'YYYY-MM-DD HH:mm:ss' 
+        }),
+        format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`))
+  })
+};
 
-const imageDir = "img";
-// Create the image directory if it does not exist
-if (!fs.existsSync(imageDir)) {
-    fs.mkdirSync(imageDir);
-}
+const logger = createLogger({
+  level: env === 'development' ? 'debug' : 'info',
+  format: format.combine(
+    format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
+  ),
+  transports: [
+    transportsOption.console,
+    new dailyRotateFileTransport({
+      filename: `${logDir}/%DATE%-results.log`,
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxFiles: '14d',
+      format: format.combine(
+        format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        format.printf(info => `${info.timestamp} ${info.level}: ${info.message}`)
+      )
+    })
+  ]
+});
+//----------------------------- 
 
+//----------------------------- api
 app.use('/user', user);
 app.use('/order', order);
+//-----------------------------
 
-app.listen(Port, function () {
-  console.log(`CORS-enabled web server listening on port ${Port}.`)
+
+//----------------------------- port
+app.listen(Port, "0.0.0.0" , () => {
+  console.dir(ip.address());
+  console.log(`Node App is running on ${ip.address()}:${Port}`);
 })
+//----------------------------- 
